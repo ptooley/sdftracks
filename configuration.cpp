@@ -68,7 +68,8 @@ void ParseConfigFile(std::string config_file){
   po::options_description mainopts("");
   mainopts.add_options()
     ("gamma_min", po::value<double>()->default_value(10), "")
-    ("time_thres", po::value<double>()->default_value(0), "")
+    ("time_min", po::value<double>()->default_value(0), "")
+    ("time_max", po::value<double>()->default_value(std::numeric_limits<double>::max()), "")
     ("output_filename", po::value<std::string>()->default_value("output.h5"), "")
     ("species", po::value<std::string>()->default_value("electron"), "")
     ("radt_mode", po::value<bool>()->default_value(false), "");

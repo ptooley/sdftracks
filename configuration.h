@@ -3,6 +3,7 @@
 
 #include <iostream>
 #include <fstream>
+#include <cstddef>
 #include <exception>
 
 #include "boost/program_options.hpp"

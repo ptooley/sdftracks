@@ -13,14 +13,13 @@ int main(int argc, char* argv[]){
 
   auto config = Config::Instance().GetConfig();
 
-  size_t func_result = 0;
-
   bf::path localdir(".");
 
   std::string hdf5out = config->at("output_filename").as<std::string>();
   std::string species = config->at("species").as<std::string>();
   double gamma_thres = config->at("gamma_min").as<double>();
-  double time_thres = config->at("time_thres").as<double>();
+  double time_min = config->at("time_min").as<double>();
+  double time_max = config->at("time_max").as<double>();
   bool radt_mode = config->at("radt_mode").as<bool>();
 
   PathVector sdf_list;
@@ -185,7 +184,7 @@ int main(int argc, char* argv[]){
     sdf_handle = sdf_open(it->filename().string().c_str(), mpi_comm, SDF_READ, mmap);
     sdf_read_blocklist(sdf_handle);
 
-    if(sdf_handle->time < time_thres){
+    if((sdf_handle->time < time_min) || (sdf_handle->time > time_max)){
       skipcount++;
       goto LOOPEND;
     }
