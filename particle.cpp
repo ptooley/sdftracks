@@ -42,7 +42,7 @@ ParticleArray* particleArrayFromVector(std::vector<Particle>& part_vector){
   part_array = new ParticleArray(array_length);
 
   
-  for(int64_t i = 0; i < array_length; i++){
+  for(size_t i = 0; i < array_length; i++){
     part_array->t[i] = part_itr->t;
     part_array->x[i] = part_itr->x;
     part_array->y[i] = part_itr->y;

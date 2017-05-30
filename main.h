@@ -27,4 +27,6 @@
 
 namespace bf = boost::filesystem;
 
+herr_t write_dset(hid_t , const char* , hsize_t* , double* , herr_t );
+
 #endif

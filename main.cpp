@@ -31,7 +31,8 @@ int main(int argc, char* argv[]){
 
   int error;
   
-  int count_freq = 0;
+  int count_freq = 1;
+  int pcount_freq = 1000;
 
   int pos_dims = 0;
   int mom_dims = 0;
@@ -177,10 +178,9 @@ int main(int argc, char* argv[]){
   //iterate over files to preselect particle ids of interest.
   double gamma_thres2 = gamma_thres * gamma_thres;
   for(PathVector::iterator it = sdf_list.begin(); it != sdf_list.end(); it++){
-    if(pcount  % count_freq == 0){
+    if(pcount++ % count_freq == 0){
       std::cout << "Progress " << pcount << "/" << sdf_list.size() << "\r" << std::flush;
     }
-    pcount++;
     sdf_handle = sdf_open(it->filename().string().c_str(), mpi_comm, SDF_READ, mmap);
     sdf_read_blocklist(sdf_handle);
 
@@ -248,7 +248,7 @@ int main(int argc, char* argv[]){
   std::sort(selected_ids.begin(),selected_ids.end());
   selected_ids.erase( std::unique(selected_ids.begin(), selected_ids.end()),selected_ids.end());
 
-  std::cout << "\nSelection Pass complete. Found " << selected_ids.size()
+  std::cout << "\r\nSelection Pass complete. Found " << selected_ids.size()
             << " particles matching criteria.\n" << std::endl;
 
   if( skipcount > 0 ){
@@ -346,40 +346,72 @@ int main(int argc, char* argv[]){
   }
 
 
-  hid_t file_handle, group_handle;
-  herr_t status;
+  hid_t file_h, group_h, fapl;
+  herr_t status, dset_props;
 
-  file_handle = H5Fcreate(hdf5out.c_str(), H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
+  // set up compact storage layout
+  dset_props = H5Pcreate(H5P_DATASET_CREATE);
+//  status = H5Pset_layout(dset_props, H5D_COMPACT);
+
+  fapl = H5Pcreate(H5P_FILE_ACCESS);
+  status = H5Pset_libver_bounds(fapl, H5F_LIBVER_18, H5F_LIBVER_LATEST);
+  file_h = H5Fcreate(hdf5out.c_str(), H5F_ACC_TRUNC, H5P_DEFAULT, fapl);
+
+  std::cout << "Writing \"" << hdf5out << "\":" << std::endl;
+  pcount =  0;
+  size_t pmsize = part_id_map.size();
+  hsize_t* dsize;
+  double out_step = std::floor(std::log10(pmsize)) - 3;
+  if (out_step < 1) { out_step = 1;};
+  pcount_freq = std::lround(std::pow(10,out_step));
 
   ParticleArray* outdata;
   for(auto id_itr = part_id_map.begin(); id_itr != part_id_map.end(); id_itr++){
+    if(pcount++ % pcount_freq == 0){
+      std::cout << "Progress " << pcount << "/" << pmsize << "\r" << std::flush;
+    }
     std::sort(id_itr->second.begin(), id_itr->second.end());
     outdata = particleArrayFromVector(id_itr->second);
     id_itr->second.clear();
 
-    group_handle =  H5Gcreate(file_handle, std::to_string(id_itr->first).c_str(),
+    group_h =  H5Gcreate(file_h, std::to_string(id_itr->first).c_str(),
                               H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
 
-    H5LTmake_dataset(group_handle, "t", 1, outdata->size, H5T_NATIVE_DOUBLE, outdata->t);
-    H5LTmake_dataset(group_handle, "x1", 1, outdata->size, H5T_NATIVE_DOUBLE, outdata->x);
-    H5LTmake_dataset(group_handle, "x2", 1, outdata->size, H5T_NATIVE_DOUBLE, outdata->y);
-    H5LTmake_dataset(group_handle, "x3", 1, outdata->size, H5T_NATIVE_DOUBLE, outdata->z);
-    H5LTmake_dataset(group_handle, "p1", 1, outdata->size, H5T_NATIVE_DOUBLE, outdata->px);
-    H5LTmake_dataset(group_handle, "p2", 1, outdata->size, H5T_NATIVE_DOUBLE, outdata->py);
-    H5LTmake_dataset(group_handle, "p3", 1, outdata->size, H5T_NATIVE_DOUBLE, outdata->pz);
+    dsize = outdata->size;
+
+    status = write_dset(group_h, "t", dsize, outdata->t, dset_props);
+    status = write_dset(group_h, "x1", dsize, outdata->x, dset_props);
+    status = write_dset(group_h, "x2", dsize, outdata->y, dset_props);
+    status = write_dset(group_h, "x3", dsize, outdata->z, dset_props);
+    status = write_dset(group_h, "p1", dsize, outdata->px, dset_props);
+    status = write_dset(group_h, "p2", dsize, outdata->py, dset_props);
+    status = write_dset(group_h, "p3", dsize, outdata->pz, dset_props);
     if (radt_mode){
-      H5LTmake_dataset(group_handle, "ene", 1, outdata->size, H5T_NATIVE_DOUBLE, outdata->ene);
+      status = write_dset(group_h, "ene", dsize, outdata->ene, dset_props);
     } else {
-      H5LTmake_dataset(group_handle, "gamma", 1, outdata->size, H5T_NATIVE_DOUBLE, outdata->ene);
+      status = write_dset(group_h, "gamma", dsize, outdata->ene, dset_props);
     }
-    H5LTmake_dataset(group_handle, "q", 1, outdata->size, H5T_NATIVE_DOUBLE, outdata->q);
+    status = write_dset(group_h, "q", dsize, outdata->q, dset_props);
 
 
-    status = H5Gclose(group_handle);
+    status = H5Gclose(group_h);
 
   }
 
-  status = H5Fclose(file_handle);
+  status = H5Fclose(file_h);
 
   return(0);
+}
+
+herr_t write_dset(hid_t group_h, const char* name, hsize_t* dsize, double* data, herr_t dset_props){
+    herr_t status;
+    hid_t dspace_h, dset_h;
+
+    dspace_h = H5Screate_simple(1,dsize, NULL);
+    dset_h = H5Dcreate(group_h, name, H5T_NATIVE_DOUBLE, dspace_h, H5P_DEFAULT, dset_props, H5P_DEFAULT); 
+    status = H5Dwrite(dset_h, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, data);
+    status = H5Dclose(dset_h);
+    status = H5Sclose(dspace_h);
+    
+    return(status);
 }
