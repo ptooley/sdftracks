@@ -3,7 +3,14 @@ project (sdftracks)
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED on)
 
-set(CMAKE_BUILD_TYPE "Debug")
+if( NOT CMAKE_BUILD_TYPE )
+    set( CMAKE_BUILD_TYPE Debug CACHE STRING
+             "Choose the type of build, options are: None Debug Release"
+        FORCE )
+endif()
+
+set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -Wall -O0")
+set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -Wall -O2 -march=native")
 
 include_directories("${PROJECT_SOURCE_DIR}/SDF/include")
 include_directories("${PROJECT_SOURCE_DIR}/SDF")
