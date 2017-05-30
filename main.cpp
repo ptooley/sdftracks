@@ -23,7 +23,7 @@ int main(int argc, char* argv[]){
   bool radt_mode = config->at("radt_mode").as<bool>();
 
   PathVector sdf_list;
-  sdf_file_t* sdf_handle;
+  sdf_file_t* sdf_handle = NULL;
   const int mpi_comm = 0;
   const int mmap = 1;
 
@@ -89,8 +89,8 @@ int main(int argc, char* argv[]){
     if(sdf_handle->nblocks > 3) break;
   }
 
-  if(sdf_handle->nblocks < 4){
-    std::cerr << "No data found." << std::endl;
+  if(!sdf_handle){
+    std::cerr << "Error: No valid SDF files found." << std::endl;
     return(1);
   }
 
