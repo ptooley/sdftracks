@@ -11,7 +11,7 @@ int main(int argc, char* argv[]){
     return(-1);
   }
 
-  auto config = Config::Instance().GetConfig();
+  po::variables_map* config = Config::Instance().GetConfig();
 
   bf::path localdir(".");
 
@@ -20,9 +20,12 @@ int main(int argc, char* argv[]){
   double gamma_thres = config->at("gamma_min").as<double>();
   double time_min = config->at("time_min").as<double>();
   double time_max = config->at("time_max").as<double>();
+  double rand_frac = config->at("rand_frac").as<double>();
   bool radt_mode = config->at("radt_mode").as<bool>();
 
-  PathVector sdf_list;
+  FindSdfFiles();
+  PathVector* sdf_list = config->at("sdf_list").as<PathVector*>();
+
   sdf_file_t* sdf_handle = NULL;
   const int mpi_comm = 0;
   const int mmap = 1;
@@ -66,25 +69,21 @@ int main(int argc, char* argv[]){
     ins_mom[3] = std_3mom;
   }
 
-  bf::directory_iterator end_itr;
-  for(bf::directory_iterator itr(localdir); itr != end_itr; ++itr){
-    if( itr->path().extension() == ".sdf"){
-      sdf_list.push_back(itr->path());
-    }
-  }
-
-  if(sdf_list.size() < 1){
+  if(sdf_list->size() < 1){
     std::cerr << "No sdf files found. Quitting." << std::endl;
     return(1);
   }
 
 
-  for(auto file_iter = sdf_list.begin(); file_iter != sdf_list.end(); file_iter++){
+  for(auto file_iter = sdf_list->begin(); file_iter != sdf_list->end(); file_iter++){
     sdf_handle = sdf_open(file_iter->string().c_str(), mpi_comm, SDF_READ, mmap);
     if(!sdf_handle) continue;
 
     error = sdf_read_blocklist(sdf_handle);
-    if(error) continue;
+    if(error){
+      sdf_close(sdf_handle);
+      continue;
+    }
 
     if(sdf_handle->nblocks > 3) break;
   }
@@ -139,17 +138,17 @@ int main(int argc, char* argv[]){
   if(target_block){
     mom_block_names.push_back(std::string(target_block->name));
     mom_dims++;
-    }
+  }
   target_block = sdf_find_block_by_name(sdf_handle, ("Particles/Py/" + species).c_str());
   if(target_block){
     mom_block_names.push_back(std::string(target_block->name));
     mom_dims++;
-    }
+  }
   target_block = sdf_find_block_by_name(sdf_handle, ("Particles/Pz/" + species).c_str());
   if(target_block){
     mom_block_names.push_back(std::string(target_block->name));
     mom_dims++;
-    }
+  }
 
   std::cout << "Found the following particle data blocks:\n";
   std::cout << id_block->name << "\n";
@@ -177,9 +176,9 @@ int main(int argc, char* argv[]){
 
   //iterate over files to preselect particle ids of interest.
   double gamma_thres2 = gamma_thres * gamma_thres;
-  for(PathVector::iterator it = sdf_list.begin(); it != sdf_list.end(); it++){
+  for(auto it = sdf_list->begin(); it != sdf_list->end(); it++){
     if(pcount++ % count_freq == 0){
-      std::cout << "Progress " << pcount << "/" << sdf_list.size() << "\r" << std::flush;
+      std::cout << "Progress " << pcount << "/" << sdf_list->size() << "\r" << std::flush;
     }
     sdf_handle = sdf_open(it->filename().string().c_str(), mpi_comm, SDF_READ, mmap);
     sdf_read_blocklist(sdf_handle);
@@ -264,6 +263,15 @@ int main(int argc, char* argv[]){
   }
   outfile.close();
 
+  if(rand_frac < 1){
+    unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
+    long subset_size = std::lround(selected_ids.size()*rand_frac);
+    if(subset_size < 1){ subset_size = 1;}
+    std::cout << "Gathering a random fraction (" << rand_frac << ") of particles: "
+              << subset_size << "/" << selected_ids.size() << std::endl;
+    std::shuffle(selected_ids.begin(), selected_ids.end(), std::default_random_engine(seed));
+    selected_ids.resize(subset_size);
+  }
 
   std::cout << "Beginning second pass...\n" << std::endl;
 
@@ -273,8 +281,10 @@ int main(int argc, char* argv[]){
     part_id_map.insert(std::pair<int64_t, ParticleVector>(*itr, ParticleVector()));
     }
   //Now loop to collect particle data
-  for(PathVector::iterator it = sdf_list.begin(); it != sdf_list.end(); it++){
-    std::cout << it->filename().string() << std::endl;
+  pcount = 0;
+  for(auto it = sdf_list->begin(); it != sdf_list->end(); it++){
+    std::cout << ++pcount  << "/" << sdf_list->size() << " "
+              << it->filename().string() << std::endl;
     sdf_handle = sdf_open(it->filename().string().c_str(), mpi_comm, SDF_READ, mmap);
     if(!sdf_handle){
     std::cerr << "Error: Failed to open file "

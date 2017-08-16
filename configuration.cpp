@@ -70,6 +70,7 @@ void ParseConfigFile(std::string config_file){
     ("gamma_min", po::value<double>()->default_value(10), "")
     ("time_min", po::value<double>()->default_value(0), "")
     ("time_max", po::value<double>()->default_value(std::numeric_limits<double>::max()), "")
+    ("rand_frac", po::value<double>()->default_value(2), "")
     ("output_filename", po::value<std::string>()->default_value("output.h5"), "")
     ("species", po::value<std::string>()->default_value("electron"), "")
     ("radt_mode", po::value<bool>()->default_value(false), "");
@@ -98,3 +99,22 @@ void ParseConfigFile(std::string config_file){
 
   return;
 }
+
+void FindSdfFiles(){
+  po::variables_map* vm = Config::Instance().GetConfig();
+
+  PathVector* sdf_list = new PathVector;
+
+  bf::path localdir(".");
+
+  bf::directory_iterator end_itr;
+  for(bf::directory_iterator itr(localdir); itr != end_itr; ++itr){
+    if( itr->path().extension() == ".sdf"){
+      sdf_list->push_back(itr->path());
+    }
+  }
+  std::sort(sdf_list->begin(),sdf_list->end());
+
+  vm->insert(std::make_pair("sdf_list", po::variable_value(sdf_list, false)));
+}
+

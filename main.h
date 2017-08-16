@@ -6,6 +6,9 @@
 #include <iostream>
 #include <fstream>
 #include <exception>
+#include <algorithm>
+#include <chrono>
+#include <random>
 
 #include <stdint.h>
 #include <cmath>

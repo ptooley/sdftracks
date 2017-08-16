@@ -1,6 +1,11 @@
 #ifndef _TYPEDEFS_H
 #define _TYPEDEFS_H
 
+#include <map>
+
+#include "particle.h"
+#include "boost/filesystem.hpp"
+
 namespace bf = boost::filesystem;
 
 typedef std::vector<bf::path> PathVector;
