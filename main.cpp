@@ -17,6 +17,7 @@ int main(int argc, char* argv[]){
 
   std::string hdf5out = config->at("output_filename").as<std::string>();
   std::string species = config->at("species").as<std::string>();
+  std::string prefix = config->at("prefix").as<std::string>();
   double gamma_thres = config->at("gamma_min").as<double>();
   double time_min = config->at("time_min").as<double>();
   double time_max = config->at("time_max").as<double>();
@@ -74,6 +75,20 @@ int main(int argc, char* argv[]){
     return(1);
   }
 
+  // Remove files from list which don't match prefix
+  sdf_list->erase(
+    std::remove_if(
+      sdf_list->begin(),
+      sdf_list->end(),
+      [prefix](bf::path element) -> bool {
+        if ((int)(element.filename().string().find(prefix)) < 0) {
+          return true;
+        }
+        return false;
+      }
+    ),
+    sdf_list->end()
+  );
 
   for(auto file_iter = sdf_list->begin(); file_iter != sdf_list->end(); file_iter++){
     sdf_handle = sdf_open(file_iter->string().c_str(), mpi_comm, SDF_READ, mmap);
@@ -183,15 +198,15 @@ int main(int argc, char* argv[]){
     sdf_handle = sdf_open(it->filename().string().c_str(), mpi_comm, SDF_READ, mmap);
     sdf_read_blocklist(sdf_handle);
 
-    if((sdf_handle->time < time_min) || (sdf_handle->time > time_max)){
-      skipcount++;
-      goto LOOPEND;
-    }
-
     if(!sdf_handle){
     std::cerr << "Error: Failed to open file "
               << it->filename().string() << ". Skipping..." << std::endl;
     goto LOOPEND;
+    }
+
+    if((sdf_handle->time < time_min) || (sdf_handle->time > time_max)){
+      skipcount++;
+      goto LOOPEND;
     }
 
     id_block = sdf_find_block_by_name(sdf_handle, ("Particles/ID/" + species).c_str());
@@ -200,6 +215,7 @@ int main(int argc, char* argv[]){
               << it->filename().string() << ". Skipping..." << std::endl;
     goto LOOPEND;
     }
+
     sdf_helper_read_data(sdf_handle, id_block);
 
     weight_block = sdf_find_block_by_name(sdf_handle, ("Particles/Weight/" + species).c_str());
@@ -360,11 +376,12 @@ int main(int argc, char* argv[]){
   herr_t status, dset_props;
 
   // set up compact storage layout
-  dset_props = H5Pcreate(H5P_DATASET_CREATE);
-//  status = H5Pset_layout(dset_props, H5D_COMPACT);
+  status = H5Pcreate(H5P_DATASET_CREATE);
+  dset_props = H5P_DEFAULT;
+  // status = H5Pset_layout(dset_props, H5D_COMPACT);
 
   fapl = H5Pcreate(H5P_FILE_ACCESS);
-  status = H5Pset_libver_bounds(fapl, H5F_LIBVER_18, H5F_LIBVER_LATEST);
+  status = H5Pset_libver_bounds(fapl, H5F_LIBVER_LATEST, H5F_LIBVER_LATEST);
   file_h = H5Fcreate(hdf5out.c_str(), H5F_ACC_TRUNC, H5P_DEFAULT, fapl);
 
   std::cout << "Writing \"" << hdf5out << "\":" << std::endl;
@@ -418,6 +435,7 @@ herr_t write_dset(hid_t group_h, const char* name, hsize_t* dsize, double* data,
     hid_t dspace_h, dset_h;
 
     dspace_h = H5Screate_simple(1,dsize, NULL);
+    //dset_h = H5Dcreate(group_h, name, H5T_NATIVE_DOUBLE, dspace_h, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT); 
     dset_h = H5Dcreate(group_h, name, H5T_NATIVE_DOUBLE, dspace_h, H5P_DEFAULT, dset_props, H5P_DEFAULT); 
     status = H5Dwrite(dset_h, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, data);
     status = H5Dclose(dset_h);

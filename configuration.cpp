@@ -73,6 +73,7 @@ void ParseConfigFile(std::string config_file){
     ("rand_frac", po::value<double>()->default_value(2), "")
     ("output_filename", po::value<std::string>()->default_value("output.h5"), "")
     ("species", po::value<std::string>()->default_value("electron"), "")
+    ("prefix", po::value<std::string>()->default_value(""), "")
     ("radt_mode", po::value<bool>()->default_value(false), "");
 
 
@@ -109,7 +110,7 @@ void FindSdfFiles(){
 
   bf::directory_iterator end_itr;
   for(bf::directory_iterator itr(localdir); itr != end_itr; ++itr){
-    if( itr->path().extension() == ".sdf"){
+    if( itr->path().extension() == ".sdf" ){
       sdf_list->push_back(itr->path());
     }
   }
