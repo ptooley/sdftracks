@@ -78,7 +78,7 @@ void ParseConfigFile(std::string config_file){
 
 
   std::ifstream ifs;
-  ifs.exceptions( std::ifstream::failbit | std::fstream::badbit );
+  ifs.exceptions(std::ifstream::failbit | std::fstream::badbit);
   try{
     ifs.open(config_file.c_str(), std::fstream::in);
   }
@@ -86,7 +86,7 @@ void ParseConfigFile(std::string config_file){
     std::cout << "Error opening \"" << config_file << "\"" << std::endl << std::endl;
     throw;
   }
-  ifs.exceptions( std::ifstream::goodbit );
+  ifs.exceptions(std::ifstream::goodbit);
 
   try{
     po::store(po::parse_config_file(ifs, mainopts), *vm);
@@ -110,7 +110,7 @@ void FindSdfFiles(){
 
   bf::directory_iterator end_itr;
   for(bf::directory_iterator itr(localdir); itr != end_itr; ++itr){
-    if( itr->path().extension() == ".sdf" ){
+    if(itr->path().extension() == ".sdf"){
       sdf_list->push_back(itr->path());
     }
   }

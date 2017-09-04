@@ -75,11 +75,12 @@ int main(int argc, char* argv[]){
     return(1);
   }
 
-  // Remove files from list which don't match prefix
+  // Remove files from list which don't match prefix - erase-remove idiom
   sdf_list->erase(
     std::remove_if(
       sdf_list->begin(),
       sdf_list->end(),
+      //woo lambda functions!
       [prefix](bf::path element) -> bool {
         if ((int)(element.filename().string().find(prefix)) < 0) {
           return true;
@@ -234,7 +235,7 @@ int main(int argc, char* argv[]){
         goto LOOPEND;
       }
 
-      if( sdf_helper_read_data(sdf_handle, mom_blocks[i]) != 0){
+      if(sdf_helper_read_data(sdf_handle, mom_blocks[i]) != 0){
        std::cerr << "Error reading " << mom_block_names[i] << " from file "
         << it->filename().string() << ". Skipping..." << std::endl;
         goto LOOPEND;
@@ -248,7 +249,7 @@ int main(int argc, char* argv[]){
       for(int j=0; j<mom_dims; j++){
         gamma2 += pow(((double*)(mom_blocks[j]->data))[i]/CONST_mc,2);
       }
-      if( gamma2 > gamma_thres2){
+      if(gamma2 > gamma_thres2){
         selected_ids.push_back(((int64_t*)(id_block->data))[i]);
       }
     }
@@ -261,12 +262,12 @@ int main(int argc, char* argv[]){
 
   //Deduplicate vector (std::unique requires iterable to be sorted)
   std::sort(selected_ids.begin(),selected_ids.end());
-  selected_ids.erase( std::unique(selected_ids.begin(), selected_ids.end()),selected_ids.end());
+  selected_ids.erase(std::unique(selected_ids.begin(), selected_ids.end()),selected_ids.end());
 
   std::cout << "\r\nSelection Pass complete. Found " << selected_ids.size()
             << " particles matching criteria.\n" << std::endl;
 
-  if( skipcount > 0 ){
+  if(skipcount > 0){
     std::cout << " Skipped " << skipcount << " snapshots outside of time window.\n"
               << std::endl;
   }
@@ -341,7 +342,7 @@ int main(int argc, char* argv[]){
         goto LOOPEND2;
       }
 
-      if( sdf_helper_read_data(sdf_handle, mom_blocks[i]) != 0){
+      if(sdf_helper_read_data(sdf_handle, mom_blocks[i]) != 0){
        std::cerr << "Error reading " << mom_block_names[i] << " from file "
         << it->filename().string() << ". Skipping..." << std::endl;
         goto LOOPEND2;
