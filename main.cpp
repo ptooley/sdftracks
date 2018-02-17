@@ -264,13 +264,22 @@ int main(int argc, char* argv[]){
   std::sort(selected_ids.begin(),selected_ids.end());
   selected_ids.erase(std::unique(selected_ids.begin(), selected_ids.end()),selected_ids.end());
 
-  std::cout << "\r\nSelection Pass complete. Found " << selected_ids.size()
-            << " particles matching criteria.\n" << std::endl;
-
   if(skipcount > 0){
     std::cout << " Skipped " << skipcount << " snapshots outside of time window.\n"
               << std::endl;
   }
+
+  //Quit if we have no particles matching criteria.
+  if(selected_ids.size() < 1){
+    std::cout << "\r\nSelection Pass complete. Found no matching particles."
+              << "\n\nNo files were written." << std::endl;
+    return(0);
+  }
+  
+  std::cout << "\r\nSelection Pass complete. Found " << selected_ids.size()
+            << " particles matching criteria.\n" << std::endl;
+
+
 
   //write list of ids out to a file.
   std::fstream outfile;
