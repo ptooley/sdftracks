@@ -1,13 +1,11 @@
-sdftracks
-blocklist
-
-Makefile
+*.ini
+*.txt
+*.h5
+bin/
+CMakeFiles
 CMakeCache.txt
-CMakeFiles/
-*.cmake
-
-# Prerequisites
-*.d
+cmake_install.cmake
+Makefile
 
 # Compiled Object files
 *.slo

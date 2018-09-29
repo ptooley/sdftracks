@@ -12,6 +12,8 @@ endif()
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -Wall -O0")
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -Wall -O2 -march=native")
 
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+
 include_directories("${PROJECT_SOURCE_DIR}/SDF/include")
 include_directories("${PROJECT_SOURCE_DIR}/SDF")
 
@@ -31,25 +33,5 @@ set(EXTRA_LIBS ${EXTRA_LIBS} sdfc)
 
 set(EXTRA_LIBS ${EXTRA_LIBS} dl)
 
-set (BLOCKLISTSOURCES
-  blockmain
-)
+add_subdirectory("src")
 
-set (SDFTRACKSOURCES
-  main
-  filter
-  particle
-  configuration
-)
-
-#set(CMAKE_FIND_LIBRARY_SUFFIXES ".a")
-#set(BUILD_SHARED_LIBRARIES OFF)
-#set(CMAKE_EXE_LINKER_FLAGS "-static")
-
-add_executable(blocklist ${BLOCKLISTSOURCES})
-set_target_properties(blocklist PROPERTIES LINKER_LANGUAGE CXX)
-target_link_libraries(blocklist ${EXTRA_LIBS})
-
-add_executable(sdftracks ${SDFTRACKSOURCES})
-set_target_properties(sdftracks PROPERTIES LINKER_LANGUAGE CXX)
-target_link_libraries(sdftracks ${EXTRA_LIBS})
