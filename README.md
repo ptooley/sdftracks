@@ -68,7 +68,7 @@ Prerequisites for installation are
 * A C++11 capable compiler (e.g gcc 6 or greater)
 * [Cmake](https://cmake.org) version 3.6 or later
 * [Boost](https://boost.org) version 1.58 or later
-* [HDF5](https://portal.hdfgroup.org/display/support) version 1.10 recommended
+* [HDF5](https://portal.hdfgroup.org/display/support) version 1.10 or later recommended
 
 Installation is then performed by checking out the code, running cmake and then make:
 
